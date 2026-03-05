@@ -1,55 +1,43 @@
-# Subscriptions & Recurring Orders Microservice
+# Subscriptions Microservice
 
-## Overview
-Spring Boot microservice for managing product subscriptions and recurring deliveries.
+## Enhancement 15 — Subscription & Recurring Orders
 
-## Features
-- Subscribe to regular product deliveries
-- Flexible frequency: Weekly / Bi-weekly / Monthly / Quarterly
-- Pause & Resume subscriptions
-- Auto-payment integration (via `paymentMethodId`)
-- Subscription discounts (configurable, default 10%)
-- Skip delivery option (up to 3 times)
-- Scheduled renewal job (daily @ 8 AM)
+Production-ready Spring Boot 3.2.2 microservice for managing recurring deliveries.
 
-## Kafka Topics
-| Topic                   | Direction | Description                      |
-|-------------------------|-----------|----------------------------------|
-| `subscription.created`  | PRODUCE   | New subscription created         |
-| `subscription.renewed`  | PRODUCE   | Subscription renewal processed   |
-| `subscription.paused`   | PRODUCE   | Subscription paused by customer  |
+### Features
+- ✅ Create subscriptions (weekly/biweekly/monthly/quarterly)
+- ✅ Pause & resume subscriptions
+- ✅ Skip delivery option (3 skips included)
+- ✅ Auto-payment via stored payment method token
+- ✅ 10% subscription discount applied automatically
+- ✅ Scheduled renewal processing (daily at 08:00)
+- ✅ Kafka event publishing
 
-## API Endpoints
-| Method | Path                                            | Description                     |
-|--------|--------------------------------------------------|---------------------------------|
-| POST   | `/api/subscriptions`                            | Create subscription             |
-| GET    | `/api/subscriptions/customer/{customerId}`      | Get customer subscriptions      |
-| GET    | `/api/subscriptions/customer/{customerId}/active`| Get active subscriptions       |
-| GET    | `/api/subscriptions/{id}`                       | Get subscription by ID          |
-| PUT    | `/api/subscriptions/{id}/pause`                 | Pause subscription              |
-| PUT    | `/api/subscriptions/{id}/resume`                | Resume subscription             |
-| DELETE | `/api/subscriptions/{id}/cancel`                | Cancel subscription             |
-| POST   | `/api/subscriptions/{id}/skip`                  | Skip next delivery              |
-| PUT    | `/api/subscriptions/{id}/frequency`             | Update delivery frequency       |
-| POST   | `/api/subscriptions/{id}/renew`                 | Manual renewal trigger          |
+### Kafka Topics
+| Topic | Description |
+|-------|-------------|
+| `subscription.created` | New subscription created |
+| `subscription.renewed` | Subscription auto-renewed |
+| `subscription.paused` | Subscription paused by customer |
 
-## Tech Stack
-- Java 17
-- Spring Boot 3.2.2
-- Spring Data JPA / H2 (dev)
+### API Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/subscriptions` | Create subscription |
+| GET | `/api/subscriptions/customer/{customerId}` | List customer subscriptions |
+| GET | `/api/subscriptions/{id}` | Get subscription |
+| PUT | `/api/subscriptions/{id}/pause` | Pause |
+| PUT | `/api/subscriptions/{id}/resume` | Resume |
+| PUT | `/api/subscriptions/{id}/skip` | Skip next delivery |
+| DELETE | `/api/subscriptions/{id}` | Cancel |
+
+### Tech Stack
+- Java 17, Spring Boot 3.2.2, Maven
+- Spring Data JPA + H2
 - Spring Kafka
-- Spring Scheduling
-- Lombok
-- Maven
+- Lombok, Bean Validation, Spring Scheduling
 
-## Running Locally
+### Run
 ```bash
 mvn spring-boot:run
-```
-Server starts on port **8088**.
-
-## Configuration
-```properties
-subscription.discount.percentage=10
-subscription.max-skip-count=3
 ```
