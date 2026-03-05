@@ -1,9 +1,7 @@
 package com.subscriptions.dto;
-
 import com.subscriptions.entity.Subscription;
 import jakarta.validation.constraints.*;
 import lombok.*;
-
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class SubscriptionRequest {
     @NotBlank private String customerId;

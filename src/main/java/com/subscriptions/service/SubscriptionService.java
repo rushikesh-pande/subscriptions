@@ -1,5 +1,4 @@
 package com.subscriptions.service;
-
 import com.subscriptions.dto.*;
 import com.subscriptions.entity.Subscription;
 import com.subscriptions.exception.SubscriptionException;
@@ -16,130 +15,100 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Service
-@RequiredArgsConstructor
-@Slf4j
+@Service @RequiredArgsConstructor @Slf4j
 public class SubscriptionService {
-
-    private final SubscriptionRepository subscriptionRepository;
-    private final SubscriptionEventProducer eventProducer;
-
-    private static final BigDecimal SUBSCRIPTION_DISCOUNT = new BigDecimal("10.00");
+    private final SubscriptionRepository repo;
+    private final SubscriptionEventProducer producer;
+    private static final BigDecimal DISCOUNT = new BigDecimal("10.00");
     private static final int DEFAULT_SKIPS = 3;
 
     @Transactional
-    public SubscriptionResponse createSubscription(SubscriptionRequest request) {
-        Subscription sub = Subscription.builder()
-            .customerId(request.getCustomerId())
-            .productId(request.getProductId())
-            .quantity(request.getQuantity())
-            .frequency(request.getFrequency())
+    public SubscriptionResponse create(SubscriptionRequest req) {
+        Subscription s = Subscription.builder()
+            .customerId(req.getCustomerId()).productId(req.getProductId())
+            .quantity(req.getQuantity()).frequency(req.getFrequency())
             .status(Subscription.SubscriptionStatus.ACTIVE)
-            .price(BigDecimal.ZERO)   // price fetched from product service in real impl
-            .discountPercent(SUBSCRIPTION_DISCOUNT)
-            .nextDeliveryDate(calculateNextDelivery(LocalDate.now(), request.getFrequency()))
+            .price(BigDecimal.ZERO).discountPercent(DISCOUNT)
+            .nextDeliveryDate(nextDate(LocalDate.now(), req.getFrequency()))
             .skipsRemaining(DEFAULT_SKIPS)
-            .paymentMethodId(request.getPaymentMethodId())
-            .deliveryAddressId(request.getDeliveryAddressId())
-            .createdAt(LocalDateTime.now())
-            .updatedAt(LocalDateTime.now())
-            .build();
-
-        sub = subscriptionRepository.save(sub);
-        log.info("Subscription created: id={}, customer={}, product={}, freq={}",
-            sub.getId(), sub.getCustomerId(), sub.getProductId(), sub.getFrequency());
-        eventProducer.publishCreated(sub);
-        return SubscriptionResponse.from(sub);
+            .paymentMethodId(req.getPaymentMethodId())
+            .deliveryAddressId(req.getDeliveryAddressId())
+            .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+        s = repo.save(s);
+        log.info("Subscription created id={} customer={} freq={}", s.getId(), s.getCustomerId(), s.getFrequency());
+        producer.publishCreated(s);
+        return SubscriptionResponse.from(s);
     }
 
     @Transactional
-    public SubscriptionResponse pauseSubscription(Long id) {
-        Subscription sub = findById(id);
-        if (sub.getStatus() != Subscription.SubscriptionStatus.ACTIVE)
+    public SubscriptionResponse pause(Long id) {
+        Subscription s = find(id);
+        if (s.getStatus()!=Subscription.SubscriptionStatus.ACTIVE)
             throw new SubscriptionException("Can only pause ACTIVE subscriptions");
-        sub.setStatus(Subscription.SubscriptionStatus.PAUSED);
-        sub.setPausedAt(LocalDateTime.now());
-        sub.setUpdatedAt(LocalDateTime.now());
-        sub = subscriptionRepository.save(sub);
-        eventProducer.publishPaused(sub);
-        log.info("Subscription paused: id={}", id);
-        return SubscriptionResponse.from(sub);
+        s.setStatus(Subscription.SubscriptionStatus.PAUSED);
+        s.setPausedAt(LocalDateTime.now()); s.setUpdatedAt(LocalDateTime.now());
+        s = repo.save(s); producer.publishPaused(s);
+        return SubscriptionResponse.from(s);
     }
 
     @Transactional
-    public SubscriptionResponse resumeSubscription(Long id) {
-        Subscription sub = findById(id);
-        if (sub.getStatus() != Subscription.SubscriptionStatus.PAUSED)
+    public SubscriptionResponse resume(Long id) {
+        Subscription s = find(id);
+        if (s.getStatus()!=Subscription.SubscriptionStatus.PAUSED)
             throw new SubscriptionException("Can only resume PAUSED subscriptions");
-        sub.setStatus(Subscription.SubscriptionStatus.ACTIVE);
-        sub.setResumedAt(LocalDateTime.now());
-        sub.setNextDeliveryDate(calculateNextDelivery(LocalDate.now(), sub.getFrequency()));
-        sub.setUpdatedAt(LocalDateTime.now());
-        sub = subscriptionRepository.save(sub);
-        log.info("Subscription resumed: id={}", id);
-        return SubscriptionResponse.from(sub);
+        s.setStatus(Subscription.SubscriptionStatus.ACTIVE);
+        s.setResumedAt(LocalDateTime.now());
+        s.setNextDeliveryDate(nextDate(LocalDate.now(), s.getFrequency()));
+        s.setUpdatedAt(LocalDateTime.now());
+        return SubscriptionResponse.from(repo.save(s));
     }
 
     @Transactional
-    public SubscriptionResponse skipNextDelivery(Long id) {
-        Subscription sub = findById(id);
-        if (sub.getStatus() != Subscription.SubscriptionStatus.ACTIVE)
+    public SubscriptionResponse skipDelivery(Long id) {
+        Subscription s = find(id);
+        if (s.getStatus()!=Subscription.SubscriptionStatus.ACTIVE)
             throw new SubscriptionException("Can only skip ACTIVE subscriptions");
-        if (sub.getSkipsRemaining() <= 0)
-            throw new SubscriptionException("No skips remaining");
-        sub.setSkipsRemaining(sub.getSkipsRemaining() - 1);
-        sub.setNextDeliveryDate(calculateNextDelivery(sub.getNextDeliveryDate(), sub.getFrequency()));
-        sub.setUpdatedAt(LocalDateTime.now());
-        log.info("Subscription delivery skipped: id={}, skipsLeft={}", id, sub.getSkipsRemaining());
-        return SubscriptionResponse.from(subscriptionRepository.save(sub));
+        if (s.getSkipsRemaining()<=0) throw new SubscriptionException("No skips remaining");
+        s.setSkipsRemaining(s.getSkipsRemaining()-1);
+        s.setNextDeliveryDate(nextDate(s.getNextDeliveryDate(), s.getFrequency()));
+        s.setUpdatedAt(LocalDateTime.now());
+        return SubscriptionResponse.from(repo.save(s));
     }
 
     @Transactional
-    public SubscriptionResponse cancelSubscription(Long id) {
-        Subscription sub = findById(id);
-        sub.setStatus(Subscription.SubscriptionStatus.CANCELLED);
-        sub.setUpdatedAt(LocalDateTime.now());
-        return SubscriptionResponse.from(subscriptionRepository.save(sub));
+    public SubscriptionResponse cancel(Long id) {
+        Subscription s = find(id);
+        s.setStatus(Subscription.SubscriptionStatus.CANCELLED); s.setUpdatedAt(LocalDateTime.now());
+        return SubscriptionResponse.from(repo.save(s));
     }
 
-    public List<SubscriptionResponse> getCustomerSubscriptions(String customerId) {
-        return subscriptionRepository.findByCustomerId(customerId)
-            .stream().map(SubscriptionResponse::from).collect(Collectors.toList());
+    public SubscriptionResponse get(Long id) { return SubscriptionResponse.from(find(id)); }
+    public List<SubscriptionResponse> getByCustomer(String cid) {
+        return repo.findByCustomerId(cid).stream().map(SubscriptionResponse::from).collect(Collectors.toList());
     }
 
-    public SubscriptionResponse getSubscription(Long id) {
-        return SubscriptionResponse.from(findById(id));
-    }
-
-    /** Scheduled: runs daily at 08:00, renews due subscriptions */
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron="0 0 8 * * *")
     @Transactional
     public void processRenewals() {
-        List<Subscription> due = subscriptionRepository
-            .findByStatusAndNextDeliveryDateLessThanEqual(
-                Subscription.SubscriptionStatus.ACTIVE, LocalDate.now());
-        log.info("Processing {} subscription renewals", due.size());
-        for (Subscription sub : due) {
+        List<Subscription> due = repo.findByStatusAndNextDeliveryDateLessThanEqual(
+            Subscription.SubscriptionStatus.ACTIVE, LocalDate.now());
+        log.info("Processing {} renewals", due.size());
+        for (Subscription s : due) {
             try {
-                sub.setLastDeliveryDate(sub.getNextDeliveryDate());
-                sub.setNextDeliveryDate(calculateNextDelivery(sub.getNextDeliveryDate(), sub.getFrequency()));
-                sub.setUpdatedAt(LocalDateTime.now());
-                subscriptionRepository.save(sub);
-                eventProducer.publishRenewed(sub);
-                log.info("Subscription renewed: id={}, next={}", sub.getId(), sub.getNextDeliveryDate());
-            } catch (Exception ex) {
-                log.error("Failed to renew subscription id={}: {}", sub.getId(), ex.getMessage());
-            }
+                s.setLastDeliveryDate(s.getNextDeliveryDate());
+                s.setNextDeliveryDate(nextDate(s.getNextDeliveryDate(), s.getFrequency()));
+                s.setUpdatedAt(LocalDateTime.now()); repo.save(s);
+                producer.publishRenewed(s);
+                log.info("Renewed subscription id={} next={}", s.getId(), s.getNextDeliveryDate());
+            } catch (Exception ex) { log.error("Renewal failed id={}: {}", s.getId(), ex.getMessage()); }
         }
     }
 
-    private Subscription findById(Long id) {
-        return subscriptionRepository.findById(id)
-            .orElseThrow(() -> new SubscriptionException("Subscription not found: " + id));
+    private Subscription find(Long id) {
+        return repo.findById(id).orElseThrow(()->new SubscriptionException("Subscription not found: "+id));
     }
-
-    private LocalDate calculateNextDelivery(LocalDate from, Subscription.Frequency freq) {
-        return switch (freq) {
+    private LocalDate nextDate(LocalDate from, Subscription.Frequency freq) {
+        return switch(freq) {
             case WEEKLY    -> from.plusWeeks(1);
             case BIWEEKLY  -> from.plusWeeks(2);
             case MONTHLY   -> from.plusMonths(1);

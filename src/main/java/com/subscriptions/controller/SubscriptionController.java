@@ -1,56 +1,31 @@
 package com.subscriptions.controller;
-
 import com.subscriptions.dto.*;
 import com.subscriptions.service.SubscriptionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
-@RestController
-@RequestMapping("/api/subscriptions")
-@RequiredArgsConstructor
+@RestController @RequestMapping("/api/subscriptions") @RequiredArgsConstructor
 public class SubscriptionController {
-
-    private final SubscriptionService subscriptionService;
-
+    private final SubscriptionService service;
     @PostMapping
-    public ResponseEntity<SubscriptionResponse> createSubscription(
-            @Valid @RequestBody SubscriptionRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(subscriptionService.createSubscription(request));
+    public ResponseEntity<SubscriptionResponse> create(@Valid @RequestBody SubscriptionRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(req));
     }
-
-    @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<SubscriptionResponse>> getCustomerSubscriptions(
-            @PathVariable String customerId) {
-        return ResponseEntity.ok(subscriptionService.getCustomerSubscriptions(customerId));
+    @GetMapping("/customer/{cid}")
+    public ResponseEntity<List<SubscriptionResponse>> getByCustomer(@PathVariable String cid) {
+        return ResponseEntity.ok(service.getByCustomer(cid));
     }
-
     @GetMapping("/{id}")
-    public ResponseEntity<SubscriptionResponse> getSubscription(@PathVariable Long id) {
-        return ResponseEntity.ok(subscriptionService.getSubscription(id));
-    }
-
+    public ResponseEntity<SubscriptionResponse> get(@PathVariable Long id) { return ResponseEntity.ok(service.get(id)); }
     @PutMapping("/{id}/pause")
-    public ResponseEntity<SubscriptionResponse> pause(@PathVariable Long id) {
-        return ResponseEntity.ok(subscriptionService.pauseSubscription(id));
-    }
-
+    public ResponseEntity<SubscriptionResponse> pause(@PathVariable Long id) { return ResponseEntity.ok(service.pause(id)); }
     @PutMapping("/{id}/resume")
-    public ResponseEntity<SubscriptionResponse> resume(@PathVariable Long id) {
-        return ResponseEntity.ok(subscriptionService.resumeSubscription(id));
-    }
-
+    public ResponseEntity<SubscriptionResponse> resume(@PathVariable Long id) { return ResponseEntity.ok(service.resume(id)); }
     @PutMapping("/{id}/skip")
-    public ResponseEntity<SubscriptionResponse> skip(@PathVariable Long id) {
-        return ResponseEntity.ok(subscriptionService.skipNextDelivery(id));
-    }
-
+    public ResponseEntity<SubscriptionResponse> skip(@PathVariable Long id) { return ResponseEntity.ok(service.skipDelivery(id)); }
     @DeleteMapping("/{id}")
-    public ResponseEntity<SubscriptionResponse> cancel(@PathVariable Long id) {
-        return ResponseEntity.ok(subscriptionService.cancelSubscription(id));
-    }
+    public ResponseEntity<SubscriptionResponse> cancel(@PathVariable Long id) { return ResponseEntity.ok(service.cancel(id)); }
 }

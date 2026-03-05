@@ -1,43 +1,34 @@
-# Subscriptions Microservice
+# Subscriptions Microservice — Enhancement 15
 
-## Enhancement 15 — Subscription & Recurring Orders
+**Subscription & Recurring Orders** — Spring Boot 3.2.2, Java 17, Kafka
 
-Production-ready Spring Boot 3.2.2 microservice for managing recurring deliveries.
+## Features
+- Weekly / Biweekly / Monthly / Quarterly deliveries
+- Pause & Resume subscriptions
+- Skip delivery (3 skips included per subscription)
+- Auto-payment via stored token
+- 10% subscription discount applied automatically
+- Daily scheduler processes due renewals (08:00)
 
-### Features
-- ✅ Create subscriptions (weekly/biweekly/monthly/quarterly)
-- ✅ Pause & resume subscriptions
-- ✅ Skip delivery option (3 skips included)
-- ✅ Auto-payment via stored payment method token
-- ✅ 10% subscription discount applied automatically
-- ✅ Scheduled renewal processing (daily at 08:00)
-- ✅ Kafka event publishing
+## Kafka Topics
+| Topic | Trigger |
+|-------|---------|
+| `subscription.created` | New subscription |
+| `subscription.renewed` | Auto-renewal processed |
+| `subscription.paused`  | Customer pauses |
 
-### Kafka Topics
-| Topic | Description |
-|-------|-------------|
-| `subscription.created` | New subscription created |
-| `subscription.renewed` | Subscription auto-renewed |
-| `subscription.paused` | Subscription paused by customer |
-
-### API Endpoints
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+## API
+| Method | Path | Description |
+|--------|------|-------------|
 | POST | `/api/subscriptions` | Create subscription |
-| GET | `/api/subscriptions/customer/{customerId}` | List customer subscriptions |
+| GET | `/api/subscriptions/customer/{id}` | Customer subscriptions |
 | GET | `/api/subscriptions/{id}` | Get subscription |
 | PUT | `/api/subscriptions/{id}/pause` | Pause |
 | PUT | `/api/subscriptions/{id}/resume` | Resume |
 | PUT | `/api/subscriptions/{id}/skip` | Skip next delivery |
 | DELETE | `/api/subscriptions/{id}` | Cancel |
 
-### Tech Stack
-- Java 17, Spring Boot 3.2.2, Maven
-- Spring Data JPA + H2
-- Spring Kafka
-- Lombok, Bean Validation, Spring Scheduling
-
-### Run
+## Run
 ```bash
 mvn spring-boot:run
 ```

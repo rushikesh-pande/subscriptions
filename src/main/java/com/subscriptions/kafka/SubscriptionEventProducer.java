@@ -1,5 +1,4 @@
 package com.subscriptions.kafka;
-
 import com.subscriptions.entity.Subscription;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,39 +7,20 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
-@RequiredArgsConstructor
-@Slf4j
+@Component @RequiredArgsConstructor @Slf4j
 public class SubscriptionEventProducer {
-
-    private final KafkaTemplate<String, Object> kafkaTemplate;
-
-    public void publishCreated(Subscription sub) {
-        kafkaTemplate.send("subscription.created", sub.getCustomerId(), buildEvent(sub, "SUBSCRIPTION_CREATED"));
-        log.info("Published subscription.created id={}", sub.getId());
-    }
-
-    public void publishRenewed(Subscription sub) {
-        kafkaTemplate.send("subscription.renewed", sub.getCustomerId(), buildEvent(sub, "SUBSCRIPTION_RENEWED"));
-        log.info("Published subscription.renewed id={}", sub.getId());
-    }
-
-    public void publishPaused(Subscription sub) {
-        kafkaTemplate.send("subscription.paused", sub.getCustomerId(), buildEvent(sub, "SUBSCRIPTION_PAUSED"));
-        log.info("Published subscription.paused id={}", sub.getId());
-    }
-
-    private Map<String, Object> buildEvent(Subscription sub, String type) {
-        Map<String, Object> e = new HashMap<>();
-        e.put("eventType", type);
-        e.put("subscriptionId", sub.getId());
-        e.put("customerId", sub.getCustomerId());
-        e.put("productId", sub.getProductId());
-        e.put("quantity", sub.getQuantity());
-        e.put("frequency", sub.getFrequency());
-        e.put("nextDeliveryDate", sub.getNextDeliveryDate() != null ? sub.getNextDeliveryDate().toString() : null);
-        e.put("discountPercent", sub.getDiscountPercent());
-        e.put("timestamp", System.currentTimeMillis());
-        return e;
+    private final KafkaTemplate<String,Object> kafkaTemplate;
+    public void publishCreated(Subscription s) { send("subscription.created", s, "SUBSCRIPTION_CREATED"); }
+    public void publishRenewed(Subscription s) { send("subscription.renewed", s, "SUBSCRIPTION_RENEWED"); }
+    public void publishPaused(Subscription s)  { send("subscription.paused",  s, "SUBSCRIPTION_PAUSED");  }
+    private void send(String topic, Subscription s, String type) {
+        Map<String,Object> e=new HashMap<>();
+        e.put("eventType",type); e.put("subscriptionId",s.getId());
+        e.put("customerId",s.getCustomerId()); e.put("productId",s.getProductId());
+        e.put("quantity",s.getQuantity()); e.put("frequency",s.getFrequency().toString());
+        e.put("nextDeliveryDate", s.getNextDeliveryDate()!=null ? s.getNextDeliveryDate().toString() : null);
+        e.put("discountPercent",s.getDiscountPercent()); e.put("timestamp",System.currentTimeMillis());
+        kafkaTemplate.send(topic, s.getCustomerId(), e);
+        log.info("Published {} id={}", type, s.getId());
     }
 }
