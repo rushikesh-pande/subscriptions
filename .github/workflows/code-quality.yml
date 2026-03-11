@@ -42,7 +42,7 @@ jobs:
         run: mvn -B spotbugs:check --no-transfer-progress
         continue-on-error: true
       - name: Upload SpotBugs report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: spotbugs-report
