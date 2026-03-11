@@ -1,0 +1,9 @@
+# Issue template chooser configuration — subscriptions
+blank_issues_enabled: false
+contact_links:
+  - name: Question / Discussion
+    url: https://github.com/rushikesh-pande/subscriptions/discussions
+    about: Ask questions and discuss ideas
+  - name: Security Vulnerability
+    url: https://github.com/rushikesh-pande/subscriptions/security/advisories/new
+    about: Report a security vulnerability privately
